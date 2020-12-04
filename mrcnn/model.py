@@ -2269,6 +2269,11 @@ class MaskRCNN(object):
         self.checkpoint_path = self.checkpoint_path.replace(
             "*epoch*", "{epoch:04d}")
 
+        self.full_model_checkpoint_path = os.path.join(self.log_dir, "mask_rcnn_model_{}_*epoch*.h5".format(
+            self.config.NAME.lower()))
+        self.full_model_checkpoint_path = self.full_model_checkpoint_path.replace(
+            "*epoch*", "{epoch:04d}")
+
     def train(self, train_dataset, val_dataset, learning_rate, epochs, layers,
               augmentation=None, custom_callbacks=None, no_augmentation_sources=None):
         """Train the model.
@@ -2352,7 +2357,7 @@ class MaskRCNN(object):
         if os.name == 'nt':
             workers = 0
         else:
-            workers = multiprocessing.cpu_count()
+            workers = 1
 
         self.keras_model.fit(
             train_generator,
