@@ -360,6 +360,8 @@ class COCOeval:
         M = len(p.maxDets)
         precision = -np.ones((T, R, K, A, M))  # -1 for the precision of absent categories
         recall = -np.ones((T, K, A, M))
+        recalls = (-np.ones((T, K, A, M))).tolist()
+        precisions = (-np.ones((T, K, A, M))).tolist()
 
         # create dictionary for future indexing
         _pe = self._paramsEval
@@ -412,11 +414,14 @@ class COCOeval:
 
                         if nd:
                             recall[t, k, a, m] = rc[-1]
+                            recalls[t][k][a][m] = np.array(rc)
                         else:
                             recall[t, k, a, m] = 0
+                            recalls[t, :, k, a, m] = 0
 
                         # numpy is slow without cython optimization for accessing elements
                         # use python array gets significant speed improvement
+                        precisions[t][k][a][m] = pr
                         pr = pr.tolist()
                         q = q.tolist()
 
@@ -430,6 +435,7 @@ class COCOeval:
                                 q[ri] = pr[pi]
                         except Exception:
                             pass
+                        # precisions[t][k][a][m] = np.array(pr)
                         precision[t, :, k, a, m] = np.array(q)
         self.eval = {
             'params': p,
@@ -437,6 +443,8 @@ class COCOeval:
             'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'precision': precision,
             'recall': recall,
+            'recalls': recalls,
+            'precisions': precisions
         }
         toc = time.time()
         print('DONE (t={:0.2f}s).'.format(toc - tic))
@@ -533,8 +541,8 @@ class Params:
         self.imgIds = []
         self.catIds = [100]  # For the Category ID of Building
         # np.arange causes trouble.  the data point on arange is slightly larger than the true value
-        self.iouThrs = np.linspace(.5, 0.95, np.round((0.95 - .5) / .05) + 1, endpoint=True)
-        self.recThrs = np.linspace(.0, 1.00, np.round((1.00 - .0) / .01) + 1, endpoint=True)
+        self.iouThrs = np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05) + 1), endpoint=True)
+        self.recThrs = np.linspace(.0, 1.00, int(np.round((1.00 - .0) / .01) + 1), endpoint=True)
         self.maxDets = [1, 10, 100]
         self.areaRng = [[0 ** 2, 1e5 ** 2], [0 ** 2, 32 ** 2], [32 ** 2, 96 ** 2], [96 ** 2, 1e5 ** 2]]
         self.areaRngLbl = ['all', 'small', 'medium', 'large']

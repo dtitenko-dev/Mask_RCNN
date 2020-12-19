@@ -1,5 +1,5 @@
 from mrcnn.cocoeval import COCOeval
-from pycocotools import mask as maskUtils
+from pycocotools import mask as mask_utils
 import time
 import numpy as np
 
@@ -24,12 +24,13 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
             bbox = np.around(rois[i], 1)
             mask = masks[:, :, i]
 
+            # print(mask_utils.encode(np.asfortranarray(mask)))
             result = {
                 "image_id": image_id,
-                "category_id": dataset.get_source_class_id(class_id, "crowdai-mapping-challenge"),
+                "category_id": dataset.get_source_class_id(class_id, "diploma"),
                 "bbox": [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
                 "score": score,
-                "segmentation": maskUtils.encode(np.asfortranarray(mask)).encode('utf-8')
+                "segmentation": mask_utils.encode(np.asfortranarray(mask))
             }
             results.append(result)
     return results
@@ -62,7 +63,7 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 
         # Run detection
         t = time.time()
-        print("="*100)
+        print("=" * 100)
         print("Image shape ", image.shape)
         r = model.detect([image])
         r = r[0]
@@ -81,14 +82,15 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
     coco_results = coco.loadRes(results)
 
     # Evaluate
-    cocoEval = COCOeval(coco, coco_results, eval_type)
-    cocoEval.params.imgIds = coco_image_ids
-    cocoEval.evaluate()
-    cocoEval.accumulate()
-    ap = cocoEval._summarize(ap=1, iouThr=0.5, areaRng="all", maxDets=100)
-    ar = cocoEval._summarize(ap=0, areaRng="all", maxDets=100)
+    coco_eval = COCOeval(coco, coco_results, eval_type)
+    coco_eval.params.imgIds = coco_image_ids
+    coco_eval.evaluate()
+    coco_eval.accumulate()
+    ap = coco_eval._summarize(ap=1, iouThr=0.5, areaRng="all", maxDets=100)
+    ar = coco_eval._summarize(ap=0, areaRng="all", maxDets=100)
     print("Precision : ", ap, " Recall : ", ar)
 
     print("Prediction time: {}. Average {}/image".format(
         t_prediction, t_prediction / len(image_ids)))
     print("Total time: ", time.time() - t_start)
+    return coco_eval
